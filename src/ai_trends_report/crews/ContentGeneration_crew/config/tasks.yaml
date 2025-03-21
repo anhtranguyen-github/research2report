@@ -1,0 +1,43 @@
+write_trend_sections_task:
+  description: >
+    Write detailed sections for each of the identified AI trends for week {week}.
+    Each section should incorporate the research papers, news articles, social media discussions,
+    and GitHub projects identified for that trend.
+    Focus on explaining the trend, its significance, current developments, and future implications.
+  expected_output: >
+    A comprehensive, well-written section for each trend that includes:
+    - Introduction to the trend and its significance
+    - Current developments and key innovations
+    - Key players and contributions
+    - Technical details and implementation aspects
+    - Future directions and potential impacts
+    - Citations of the key sources used
+  agent: trend_writer_agent
+
+write_executive_summary_task:
+  description: >
+    Create an executive summary of the week's AI trends report.
+    The summary should highlight the most significant trends and their business implications.
+    Focus on why these trends matter from a strategic perspective.
+  expected_output: >
+    A concise, impactful executive summary that includes:
+    - Overview of the most significant AI trends this week
+    - Brief explanation of why each trend matters
+    - Business and industry implications
+    - Strategic considerations for organizations
+  agent: summary_writer_agent
+
+edit_report_task:
+  description: >
+    Edit and organize the complete AI trends report to create a polished final document.
+    Integrate the executive summary and individual trend sections into a coherent report.
+    Ensure consistent style, proper formatting, and eliminate redundancies.
+  expected_output: >
+    A complete, professionally edited AI trends report in markdown format that includes:
+    - Title page with report period
+    - Table of contents
+    - Executive summary
+    - Trend sections organized in a logical order
+    - Sources and citations section
+    - Consistent formatting throughout
+  agent: editor_agent 

@@ -1,20 +1,25 @@
-[project]
-name = "book_writing_flow"
-version = "0.1.0"
-description = "book_writing_flow using crewAI"
-authors = [{ name = "Your Name", email = "you@example.com" }]
-requires-python = ">=3.10,<3.13"
-dependencies = [
-    "crewai[tools]>=0.102.0,<1.0.0",
-]
-
-[project.scripts]
-kickoff = "book_writing_flow.main:kickoff"
-plot = "book_writing_flow.main:plot"
-
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
+
+[project]
+name = "ai_trends_report"
+version = "0.1.0"
+authors = [
+  { name="Example Author", email="author@example.com" },
+]
+description = "AI Agent system that generates weekly AI trends reports"
+readme = "README.md"
+requires-python = ">=3.10"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+
+[project.scripts]
+kickoff = "ai_trends_report.main:kickoff"
+plot = "ai_trends_report.main:plot"
 
 [tool.crewai]
 type = "flow"

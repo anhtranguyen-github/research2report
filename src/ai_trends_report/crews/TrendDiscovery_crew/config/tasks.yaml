@@ -1,0 +1,52 @@
+monitor_news_task:
+  description: >
+    Search for and analyze the latest news about AI and big data technologies in the past week.
+    Focus on identifying emerging trends, major announcements, and significant developments.
+    Look for patterns across multiple news sources to identify truly important trends.
+  expected_output: >
+    A detailed analysis of the top 3-5 AI trends found in news articles from the past week.
+    Include trend names, brief descriptions, and links to source articles.
+  agent: news_monitor_agent
+
+monitor_research_task:
+  description: >
+    Analyze recent research papers and technical blogs about AI and big data.
+    Identify cutting-edge research directions and technological breakthroughs.
+    Focus on papers that have significant potential impact on the AI field.
+  expected_output: >
+    A detailed analysis of 3-5 significant research trends in AI from the past week.
+    Include trend names, brief descriptions, and references to key papers or publications.
+  agent: research_monitor_agent
+
+monitor_social_media_task:
+  description: >
+    Scan social media platforms for discussions about AI technologies and trends.
+    Monitor posts from influential AI researchers, developers, and organizations.
+    Identify trending topics, viral AI demos, and community discussions.
+  expected_output: >
+    An analysis of 3-5 AI trends that are generating significant discussion on social media.
+    Include trend names, brief descriptions, and references to notable social media posts.
+  agent: social_media_monitor_agent
+
+monitor_developer_forums_task:
+  description: >
+    Monitor developer forums, GitHub discussions, and AI community spaces.
+    Look for emerging AI libraries, frameworks, and tools that developers are excited about.
+    Identify changes in developer sentiment and adoption patterns for AI technologies.
+  expected_output: >
+    An analysis of 3-5 trends in AI tools, frameworks, and libraries that developers are discussing.
+    Include trend names, brief descriptions, and references to forum discussions or repositories.
+  agent: developer_forum_monitor_agent
+
+analyze_trends_task:
+  description: >
+    Evaluate all the trends identified by the other agents and synthesize them into a coherent list.
+    Identify connections between trends from different sources.
+    Prioritize trends based on their significance, novelty, and potential impact.
+  expected_output: >
+    A prioritized list of the 7-10 most significant AI trends from the past week.
+    Each trend should include:
+    - A clear, descriptive title
+    - A concise description of the trend and its significance
+    - A list of key sources supporting the trend identification
+  agent: trend_analyst_agent 

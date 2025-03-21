@@ -1,0 +1,6 @@
+crewai[tools]>=0.102.0,<1.0.0
+pydantic
+python-dotenv
+hatchling
+requests
+arxiv 
