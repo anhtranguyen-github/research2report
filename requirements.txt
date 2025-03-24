@@ -4,3 +4,4 @@ python-dotenv
 hatchling
 requests
 arxiv 
+tweepy>=4.14.0 
