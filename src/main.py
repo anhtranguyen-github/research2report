@@ -6,9 +6,7 @@ from pydantic import BaseModel
 
 from crewai.flow import Flow, listen, start
 
-from ai_trends_report.crews.TrendDiscovery_crew.trend_discovery_crew import TrendDiscoveryCrew
-from ai_trends_report.crews.DataExtraction_crew.data_extraction_crew import DataExtractionCrew
-from ai_trends_report.crews.ContentGeneration_crew.content_generation_crew import ContentGenerationCrew
+from crews.ContentGeneration_crew.content_generation_crew import ContentGenerationCrew
 from dotenv import load_dotenv
 
 load_dotenv()

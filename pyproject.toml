@@ -3,7 +3,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "ai_trends_report"
+name = "agentic_rag"
 version = "0.1.0"
 authors = [
   { name="Example Author", email="author@example.com" },
@@ -18,8 +18,8 @@ classifiers = [
 ]
 
 [project.scripts]
-kickoff = "ai_trends_report.main:kickoff"
-plot = "ai_trends_report.main:plot"
+kickoff = "agentic_rag.main:kickoff"
+plot = "agentic_rag.main:plot"
 
 [tool.crewai]
 type = "flow"
