@@ -48,8 +48,8 @@ def get_ollama_llm(
     model_kwargs = {
         "temperature": temperature,
         "top_p": config.get("top_p", 0.9),
-        "max_tokens": config.get("max_tokens", 1024),
-        "repetition_penalty": config.get("repetition_penalty", 1.1),
+        #"max_tokens": config.get("max_tokens", 1024),
+        #"repetition_penalty": config.get("repetition_penalty", 1.1),
     }
     
     # Override with any explicitly provided kwargs
