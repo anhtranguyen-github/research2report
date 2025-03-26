@@ -1,106 +1,131 @@
-# AI Trends Report Generator
+# AgenticRAG
 
-An AI agent system that researches and generates a comprehensive weekly report on the latest AI trends and developments.
+[![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-## Overview
+An advanced system for retrieval-augmented generation with autonomous AI agents. Developed by [Nguyen Anh Tra (Ezooo)](https://github.com/anhtranguyen-github).
 
-This project uses the CrewAI framework to orchestrate multiple AI agents that work together to create detailed, insightful reports on current trends in artificial intelligence. The system handles:
+## 🚀 Overview
 
-1. Researching and identifying key AI trends from the past week
-2. Extracting and analyzing data about each trend
-3. Compiling the findings into a structured report
+AgenticRAG combines the power of retrieval-augmented generation (RAG) with autonomous AI agents to create a more powerful, context-aware, and adaptive information retrieval and content generation system. The system:
 
-## Project Structure
+1. **Analyzes** - Understands complex queries beyond simple keyword matching
+2. **Retrieves** - Uses sophisticated agents to gather relevant information from various sources
+3. **Augments** - Enhances retrieved information with additional context and connections
+4. **Generates** - Creates comprehensive, accurate responses using the augmented context
+
+## 📁 Project Structure
 
 ```
-ai_trends_report/
-├── crews/
-│   ├── TrendDiscovery_crew/
-│   │   ├── config/
-│   │   │   ├── agents.yaml
-│   │   │   └── tasks.yaml
-│   │   └── trend_discovery_crew.py
-│   ├── DataExtraction_crew/
-│   │   ├── config/
-│   │   │   ├── agents.yaml
-│   │   │   └── tasks.yaml
-│   │   └── data_extraction_crew.py
-│   └── ContentGeneration_crew/
-│       ├── config/
-│       │   ├── agents.yaml
-│       │   └── tasks.yaml
-│       └── content_generation_crew.py
-├── tools/
-│   ├── search_tool.py
-│   ├── arxiv_tool.py
-│   └── github_tool.py
-└── main.py
+agentic_rag/
+├── src/
+│   ├── agentic_rag/          # Core RAG functionality
+│   └── server/               # API server components
+├── tests/                    # Test suite
+├── docs/                     # Documentation
+├── pyproject.toml            # Project metadata and dependencies
+├── .env.example              # Example environment variables
+├── docker-compose.yml        # Docker configuration
+└── README.md                 # Project documentation
 ```
 
-## How It Works
+## ⚙️ How It Works
 
-The system operates in three sequential phases:
+The system operates through a coordinated agent workflow:
 
-1. **Trend Discovery Phase**: Multiple agents monitor different sources (news, research papers, social media, developer forums) to identify emerging AI trends. These findings are then analyzed and consolidated into a prioritized list of the most significant trends.
+1. **Query Analysis Phase**
+   - Agents analyze the user's query to understand the intent and required information
+   - The query is broken down into multiple components for targeted retrieval
 
-2. **Data Extraction Phase**: For each identified trend, specialized agents gather detailed information from various sources, including research papers, news articles, social media discussions, and GitHub projects. This data is analyzed to create a comprehensive view of each trend.
+2. **Retrieval Phase**
+   - Specialized retrieval agents search for information across different sources
+   - Sources include vector databases, web searches, and structured knowledge bases
+   - Results are ranked and filtered for relevance
 
-3. **Content Generation Phase**: Using the extracted data, content-focused agents create detailed write-ups for each trend, an executive summary highlighting strategic implications, and compile everything into a polished, coherent report.
+3. **Content Generation Phase**
+   - Using the retrieved context, the system generates a comprehensive response
+   - Multiple agents work together to ensure accuracy and completeness
+   - The final response is formatted appropriately for the user's needs
 
-## Getting Started
+## 🔧 Installation
 
 ### Prerequisites
 
 - Python 3.10+
-- Dependencies listed in `requirements.txt`
+- Git
 
-### Installation
+### Option 1: Manual Installation
 
 ```bash
 # Clone the repository
-git clone <repository-url>
-cd ai-trends-report
+git clone https://github.com/anhtranguyen-github/agentic-rag.git
+cd agentic-rag
 
 # Set up a virtual environment
 python -m venv venv
 source venv/bin/activate  # On Windows: venv\Scripts\activate
 
-# Install dependencies
-pip install -r requirements.txt
+# Install the package and dependencies
+pip install -e ".[dev]"
 ```
 
-### Environment Variables
-
-Create a `.env` file in the root directory with the following variables:
-
-```
-BRIGHDATA_USERNAME=your_brighdata_username
-BRIGHDATA_PASSWORD=your_brighdata_password
-GITHUB_TOKEN=your_github_token
-```
-
-### Usage
+### Option 2: Docker Installation
 
 ```bash
-# Run the report generation
-python -m src.ai_trends_report.main
+# Clone the repository
+git clone https://github.com/anhtranguyen-github/agentic-rag.git
+cd agentic-rag
 
-# Or use the CLI command if you've installed the package
-kickoff
+# Start the Docker containers
+docker-compose up -d
 ```
 
-The report will be saved as `ai_trends_report.md` in the current directory.
+## 🔑 Environment Setup
 
-## Configuration
+Copy the example environment file and update with your credentials:
+
+```bash
+cp .env.example .env
+```
+
+Required environment variables:
+
+```
+OPENAI_API_KEY=your_openai_api_key
+QDRANT_URL=http://qdrant:6333
+```
+
+## 🏃‍♂️ Usage
+
+### Command Line Interface
+
+```bash
+# Run the RAG system
+kickoff
+
+# Generate visualizations of retrieval performance
+plot
+```
+
+### API Server
+
+```bash
+# Start the API server
+uvicorn src.server.main:app --reload
+
+# The API will be available at http://localhost:8000
+# Swagger documentation at http://localhost:8000/docs
+```
+
+## 🔍 Configuration
+
+### Agent Configuration
 
 Agent behavior and tasks can be customized by modifying the YAML files in:
-- `src/ai_trends_report/crews/TrendDiscovery_crew/config/`
-- `src/ai_trends_report/crews/DataExtraction_crew/config/`
-- `src/ai_trends_report/crews/ContentGeneration_crew/config/`
+- `src/agentic_rag/config/agents/`
+- `src/agentic_rag/config/tasks/`
 
-## Model Configuration
-
-### LLM Models
+### Model Configuration
 
 The system supports multiple LLM models for different tasks:
 
@@ -108,25 +133,40 @@ The system supports multiple LLM models for different tasks:
 - **Llama Models**: llama3, llama3-70b
 - **Mistral Models**: mistral, mistral-7b-instruct
 - **Mixtral Models**: mixtral
-- **CodeLlama Models**: codellama
+- **OpenAI Models**: gpt-4o, gpt-4-turbo, gpt-3.5-turbo
 
-Each task in the RAG pipeline (query analysis, retrieval evaluation, generation) can use optimized parameters for that specific task.
+Each task in the RAG pipeline can use optimized parameters for that specific task.
 
-See [Model Configuration Documentation](src/agentic_rag/config/README.md) for details.
-
-### Embedding Models
+## 📊 Embedding Models
 
 The system supports multiple embedding models for vector storage:
 
-- **Sentence Transformers Models**: all-MiniLM-L6-v2, all-mpnet-base-v2, e5-large-v2, etc.
+- **Sentence Transformers Models**: all-MiniLM-L6-v2, all-mpnet-base-v2, e5-large-v2
 - **Instructor Models**: Instruction-tuned embedding models
 - **OpenAI Models**: OpenAI's embedding models (requires API key)
 - **Ollama Models**: Embedding models running through Ollama
 
-Embedding models can be changed at runtime, and collections can be created specific to each model's dimensions.
+## 🧪 Testing
 
-See [Embedding Configuration Documentation](src/agentic_rag/config/EMBEDDING_README.md) for details.
+```bash
+# Run tests
+pytest
 
-## License
+# Run tests with coverage
+pytest --cov=src
+```
 
-MIT
+## 📄 License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+## 👨‍💻 About the Author
+
+Nguyen Anh Tra (Ezooo) is a developer from Vietnam currently focused on Large Language Models (LLMs) and their applications. For more projects, check out:
+
+- [bkai-vnlaw-rag](https://github.com/anhtranguyen-github/bkai-vnlaw-rag) - RAG system for Vietnamese legal documents
+- [Other LLM-related projects](https://github.com/anhtranguyen-github)
+
+## 📞 Contact
+
+For questions or feedback, please [open an issue](https://github.com/anhtranguyen-github/agentic-rag/issues) on the GitHub repository.
