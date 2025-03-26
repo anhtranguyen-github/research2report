@@ -27,79 +27,103 @@ class QueryAnalyzerAgent:
         Args:
             model_name: Name of the LLM model to use
         """
-        self.llm = get_ollama_llm(model_name=model_name)
+        # Use task-specific model for query analysis
+        self.llm = get_ollama_llm(model_name=model_name, task_type="query_analysis")
         self.prompt = self._create_prompt()
-        self.chain = self.prompt | self.llm | StrOutputParser() | self._parse_output
+        self.chain = self.prompt | self.llm | StrOutputParser()
     
     def _create_prompt(self) -> PromptTemplate:
         """Create the prompt template for query analysis."""
-        template = """You are an expert query analyzer for a RAG (Retrieval Augmented Generation) system.
-Your task is to analyze the user's query to determine the best search strategy.
+        template = """You are an expert AI query analyzer tasked with understanding user queries.
+Analyze the given query and extract key information to help with information retrieval.
 
 User Query: {query}
 
-Analyze the query and provide the following:
-1. The primary intent of the query
-2. A list of specific questions that need to be answered
-3. Effective search terms for retrieving relevant information
-4. Whether external context is required to answer the query
-5. Your reasoning process
+Provide an analysis with the following information:
 
-Format your response as follows:
-Intent: <primary intent>
-Questions: <list of specific questions>
-Search Terms: <list of effective search terms>
-Requires Context: <true/false>
-Reasoning: <your reasoning process>
+1. Intent: What is the primary intent of the query? Is it a factual question, opinion request, how-to, etc.?
 
-Think carefully about the query and provide a comprehensive analysis."""
+2. Specific Questions: Break down the query into specific questions that need to be answered.
+
+3. Search Terms: List specific terms or phrases that would be most effective for searching a knowledge base.
+
+4. Requires Context: Does this query require specific contextual information to answer properly? Yes or No.
+
+5. Reasoning: Briefly explain your analysis.
+
+Format your response as JSON with the following structure:
+```json
+{
+  "intent": "string",
+  "questions": ["string", "string"],
+  "search_terms": ["string", "string"],
+  "requires_context": true|false,
+  "reasoning": "string"
+}
+```"""
         
         return PromptTemplate.from_template(template)
     
-    def _parse_output(self, output: str) -> QueryAnalysis:
-        """
-        Parse the LLM output into a structured format.
-        
-        Args:
-            output: Raw LLM output string
-            
-        Returns:
-            Structured query analysis
-        """
-        lines = output.strip().split('\n')
-        result = {}
-        
-        for line in lines:
-            if line.startswith('Intent:'):
-                result['intent'] = line.replace('Intent:', '').strip()
-            elif line.startswith('Questions:'):
-                questions_str = line.replace('Questions:', '').strip()
-                result['questions'] = [q.strip() for q in questions_str.split(',')]
-            elif line.startswith('Search Terms:'):
-                terms_str = line.replace('Search Terms:', '').strip()
-                result['search_terms'] = [t.strip() for t in terms_str.split(',')]
-            elif line.startswith('Requires Context:'):
-                context_str = line.replace('Requires Context:', '').strip().lower()
-                result['requires_context'] = context_str == 'true'
-            elif line.startswith('Reasoning:'):
-                result['reasoning'] = line.replace('Reasoning:', '').strip()
-        
-        return QueryAnalysis(
-            intent=result.get('intent', ''),
-            questions=result.get('questions', []),
-            search_terms=result.get('search_terms', []),
-            requires_context=result.get('requires_context', True),
-            reasoning=result.get('reasoning', '')
-        )
-    
     def analyze(self, query: str) -> QueryAnalysis:
         """
-        Analyze the user query.
+        Analyze a user query.
         
         Args:
-            query: The user's query string
+            query: User query string
             
         Returns:
-            Structured analysis of the query
+            Query analysis results
         """
-        return self.chain.invoke({"query": query}) 
+        # Get the analysis as a JSON string
+        try:
+            analysis_str = self.chain.invoke({"query": query})
+            
+            # Parse the JSON string to get the analysis
+            import json
+            
+            # Extract the JSON content between triple backticks if present
+            if "```json" in analysis_str:
+                import re
+                json_match = re.search(r'```json\s*(.*?)\s*```', analysis_str, re.DOTALL)
+                if json_match:
+                    analysis_str = json_match.group(1)
+            
+            # Parse the JSON
+            analysis = json.loads(analysis_str)
+            
+            # Ensure the result has all required fields
+            return QueryAnalysis(
+                intent=analysis.get("intent", ""),
+                questions=analysis.get("questions", []),
+                search_terms=analysis.get("search_terms", []),
+                requires_context=analysis.get("requires_context", True),
+                reasoning=analysis.get("reasoning", "")
+            )
+        except Exception as e:
+            print(f"Error analyzing query: {e}")
+            # Return a default analysis in case of error
+            return QueryAnalysis(
+                intent="Unknown",
+                questions=[query],
+                search_terms=[query],
+                requires_context=True,
+                reasoning=f"Error during analysis: {str(e)}"
+            )
+        
+    def run(self, state: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Run the query analyzer within the workflow.
+        
+        Args:
+            state: The current workflow state
+            
+        Returns:
+            Updated workflow state
+        """
+        query = state.get("query", "")
+        query_analysis = self.analyze(query)
+        
+        return {
+            "query": query,
+            "query_analysis": query_analysis
+        } 
