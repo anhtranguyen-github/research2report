@@ -7,13 +7,16 @@ arxiv
 tweepy>=4.14.0 
 langgraph>=0.0.35
 qdrant-client>=1.8.0
-sentence-transformers
+sentence-transformers>=2.2.2
 llama-index>=0.10.0
 ollama
 langchain
 langchain-community
 langchain-huggingface 
 langchain-qdrant
+langchain-openai
+openai>=1.2.0
+instructor-embedding>=0.4.0
 fastapi>=0.104.0
 uvicorn>=0.24.0
 python-multipart>=0.0.6 
