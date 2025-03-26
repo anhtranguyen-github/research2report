@@ -63,7 +63,10 @@ class AgenticRAGWorkflow:
             if func is not None:
                 graph.add_node(name, func)
         
-        # Add edges
+        # Set the entry point
+        graph.set_entry_point("analyze_query")
+        
+        # Add edges between nodes
         graph.add_edge("analyze_query", "retrieve_documents")
         if self.web_search:
             graph.add_edge("retrieve_documents", "web_search")
@@ -71,9 +74,8 @@ class AgenticRAGWorkflow:
         else:
             graph.add_edge("retrieve_documents", "generate_response")
         
-        # Define the end state
-        def end_state(state):
-            return state.get("response") is not None
+        # Set the finish point to the generate_response node
+        graph.set_finish_point("generate_response")
         
         # Compile the graph with the correct API
         return graph.compile()
@@ -91,7 +93,8 @@ class AgenticRAGWorkflow:
         try:
             # Run the graph with the initial state
             state = {"query": query}
-            result = self.graph(state)
+            # Use invoke() method instead of calling the graph directly
+            result = self.graph.invoke(state)
             
             return {
                 "response": result.get("response", ""),
