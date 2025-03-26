@@ -4,9 +4,13 @@ import time
 import argparse
 import json
 from tabulate import tabulate
+from dotenv import load_dotenv
 
-# Default API URL
-API_URL = "http://localhost:8000"
+# Load environment variables
+load_dotenv()
+
+# API configuration
+API_URL = os.getenv("API_URL", "http://localhost:8000")
 
 def test_health():
     """Test health check endpoints"""
@@ -241,9 +245,9 @@ def test_query(queries=None, model="qwen2.5", use_web_search=True):
     
     if queries is None:
         queries = [
-            "What are the key components of a RAG system?",
-            "How does LangGraph work with Ollama?",
-            "What is the difference between RAG and traditional search?"
+            "What is Vibe Coding",
+            "What is MCP",
+            "What is Cursor AI"
         ]
     
     for query in queries:
@@ -267,10 +271,13 @@ def test_query(queries=None, model="qwen2.5", use_web_search=True):
                 print(f"Response: {data.get('response')[:200]}...")  # Print first 200 chars
                 
                 if data.get('query_analysis'):
-                    print(f"Query Analysis: {data.get('query_analysis')}")
+                    print(f"Query Analysis: {json.dumps(data.get('query_analysis'), indent=2)}")
                 
-                if data.get('relevance_assessment'):
-                    print(f"Relevance Assessment: {data.get('relevance_assessment')}")
+                if data.get('retrieval_result'):
+                    print(f"Retrieval Results: {len(data.get('retrieval_result'))} documents found")
+                    
+                if data.get('web_search_results'):
+                    print(f"Web Search Results: {len(data.get('web_search_results'))} results found")
                     
                 if data.get('error'):
                     print(f"Error: {data.get('error')}")
@@ -278,6 +285,47 @@ def test_query(queries=None, model="qwen2.5", use_web_search=True):
                 print(f"Error: {response.text}")
         except Exception as e:
             print(f"Failed to send query: {str(e)}")
+
+def test_query_analysis(query="What is RAG in artificial intelligence?", model="qwen2.5"):
+    """Test the query analysis component specifically"""
+    print(f"\n=== Testing Query Analysis for: '{query}' ===")
+    
+    payload = {
+        "query": query,
+        "model_name": model,
+        "use_web_search": True
+    }
+    
+    try:
+        response = requests.post(f"{API_URL}/query", json=payload)
+        
+        if response.status_code == 200:
+            data = response.json()
+            analysis = data.get('query_analysis')
+            
+            if analysis:
+                print("Query Analysis Results:")
+                print(f"Intent: {analysis.get('intent', 'N/A')}")
+                print(f"Requires Retrieval: {analysis.get('requires_retrieval', False)}")
+                print(f"Requires Web Search: {analysis.get('requires_web_search', False)}")
+                
+                if 'specific_questions' in analysis and analysis['specific_questions']:
+                    print("\nSpecific Questions:")
+                    for i, question in enumerate(analysis['specific_questions'], 1):
+                        print(f"  {i}. {question}")
+                
+                if 'context_requirements' in analysis and analysis['context_requirements']:
+                    print("\nContext Requirements:")
+                    for key, value in analysis['context_requirements'].items():
+                        print(f"  {key}: {value}")
+                
+                print(f"\nFull Analysis: {json.dumps(analysis, indent=2)}")
+            else:
+                print("No query analysis returned in the response")
+        else:
+            print(f"Error: {response.text}")
+    except Exception as e:
+        print(f"Failed to test query analysis: {str(e)}")
 
 def test_upload_file(file_path, embedding_model=None):
     """Test file upload endpoint"""
@@ -390,28 +438,181 @@ def test_with_different_models(query, models=None):
     
     return results
 
+def test_web_search():
+    """Test if web search is working through the API."""
+    print("\nTesting web search functionality...")
+    
+    # Test query with web search enabled
+    query_data = {
+        "query": "What is artificial intelligence?",
+        "model_name": "qwen2.5",
+        "use_web_search": True
+    }
+    
+    try:
+        # Make the API request
+        print(f"Sending request to {API_URL}/query")
+        response = requests.post(
+            f"{API_URL}/query",
+            json=query_data
+        )
+        response.raise_for_status()
+        result = response.json()
+        
+        # Check if web search results are present
+        if "web_search_results" in result:
+            web_results = result["web_search_results"]
+            print(f"\nFound {len(web_results)} web search results")
+            
+            # Print web search results
+            for i, doc in enumerate(web_results, 1):
+                print(f"\nWeb Search Result {i}:")
+                print(f"Title: {doc.get('title', 'N/A')}")
+                print(f"URL: {doc.get('url', 'N/A')}")
+                print(f"Snippet: {doc.get('snippet', '')[:200]}...")  # Print first 200 chars
+                print(f"Score: {doc.get('relevance_score', 'N/A')}")
+        else:
+            print("\nNo web search results found in response")
+        
+        # Print the final response
+        print("\nFinal Response:")
+        print(result.get("response", "No response generated"))
+        
+        return True
+        
+    except requests.exceptions.RequestException as e:
+        print(f"Error making API request: {str(e)}")
+        return False
+    except Exception as e:
+        print(f"Error during test: {str(e)}")
+        return False
+
+def test_web_search_disabled():
+    """Test query with web search disabled."""
+    print("\nTesting query with web search disabled...")
+    
+    query_data = {
+        "query": "What is artificial intelligence?",
+        "model_name": "qwen2.5",
+        "use_web_search": False
+    }
+    
+    try:
+        response = requests.post(
+            f"{API_URL}/query",
+            json=query_data
+        )
+        response.raise_for_status()
+        result = response.json()
+        
+        # Verify no web search results
+        if "web_search_results" in result and result["web_search_results"]:
+            print("Warning: Web search results found when web search was disabled")
+        else:
+            print("Success: No web search results when web search was disabled")
+        
+        print("\nResponse without web search:")
+        print(result.get("response", "No response generated"))
+        
+        return True
+        
+    except Exception as e:
+        print(f"Error during test: {str(e)}")
+        return False
+
+def test_streaming():
+    """Test streaming response functionality."""
+    print("\nTesting streaming response...")
+    
+    query_data = {
+        "query": "Explain the concept of RAG in simple terms",
+        "model_name": "qwen2.5",
+        "use_web_search": True
+    }
+    
+    try:
+        # Send request to the streaming endpoint
+        print(f"Connecting to {API_URL}/query/stream")
+        response = requests.post(
+            f"{API_URL}/query/stream",
+            json=query_data,
+            stream=True,
+            headers={"Accept": "text/event-stream"}
+        )
+        response.raise_for_status()
+        
+        print("\nReceiving streamed response:")
+        complete_response = ""
+        
+        # Process the SSE stream
+        for line in response.iter_lines():
+            if not line:
+                continue
+                
+            line = line.decode('utf-8')
+            
+            # Check for SSE format "data: [content]"
+            if line.startswith('data:'):
+                data = line[5:].strip()
+                
+                # Check for completion marker
+                if data == "[DONE]":
+                    print("\nStream complete")
+                    break
+                
+                # Print token and add to complete response
+                print(data, end="", flush=True)
+                complete_response += data
+        
+        print("\n\nFull streamed response:")
+        print(complete_response)
+        
+        return True
+        
+    except Exception as e:
+        print(f"Error during streaming test: {str(e)}")
+        return False
+
+def test_basic_query(query="What is Vibe Coding", model="qwen2.5"):
+    """Test basic query functionality"""
+    print(f"\n=== Testing Basic Query with model {model} ===")
+    
+    payload = {
+        "query": query,
+        "model_name": model,
+        "use_web_search": True
+    }
+    
+    try:
+        start_time = time.time()
+        response = requests.post(f"{API_URL}/query", json=payload)
+        elapsed_time = time.time() - start_time
+        
+        print(f"Status Code: {response.status_code}")
+        print(f"Time Taken: {elapsed_time:.2f} seconds")
+        
+        if response.status_code == 200:
+            data = response.json()
+            print(f"Response: {data.get('response')[:200]}...")  # Print first 200 chars
+            
+            if data.get('query_analysis'):
+                print(f"Query Analysis: {json.dumps(data.get('query_analysis'), indent=2)}")
+            
+            return True
+        else:
+            print(f"Error: {response.text}")
+            return False
+    except Exception as e:
+        print(f"Failed to send query: {str(e)}")
+        return False
+
 def main():
     global API_URL
     
     parser = argparse.ArgumentParser(description="Test Agentic RAG API")
     parser.add_argument("--url", default=API_URL, help="API URL")
-    parser.add_argument("--query", help="Single query to test")
-    parser.add_argument("--model", default="qwen2.5", help="Model to use for queries")
-    parser.add_argument("--no-web-search", action="store_true", help="Disable web search")
-    parser.add_argument("--file", help="File to upload for testing ingestion")
-    parser.add_argument("--embedding", help="Embedding model to test or use")
-    parser.add_argument("--new-collection", action="store_true", help="Create new collection when changing embedding")
-    parser.add_argument("--compare-models", help="Query to compare across multiple models")
-    parser.add_argument("--models-list", help="Comma-separated list of models to compare")
-    
-    # Test selection flags
-    parser.add_argument("--skip-health", action="store_true", help="Skip health checks")
-    parser.add_argument("--skip-models", action="store_true", help="Skip models endpoints")
-    parser.add_argument("--skip-embeddings", action="store_true", help="Skip embeddings endpoints")
-    parser.add_argument("--skip-collections", action="store_true", help="Skip collections endpoints")
-    parser.add_argument("--skip-query", action="store_true", help="Skip query tests")
-    parser.add_argument("--skip-upload", action="store_true", help="Skip upload tests")
-    parser.add_argument("--skip-change-embedding", action="store_true", help="Skip embedding change test")
+    parser.add_argument("--query", default="What is Vibe Coding", help="Query to test")
+    parser.add_argument("--model", default="qwen2.5", help="Model to use")
     
     args = parser.parse_args()
     
@@ -419,34 +620,16 @@ def main():
     if args.url != API_URL:
         API_URL = args.url
     
-    # Run the selected tests
-    if not args.skip_health:
-        test_health()
+    print(f"Testing API at: {API_URL}")
     
-    if not args.skip_models:
-        test_models()
+    # Run health check
+    test_health()
     
-    if not args.skip_embeddings:
-        test_embeddings()
+    # Run basic query test
+    success = test_basic_query(args.query, args.model)
+    print(f"\nBasic query test {'PASSED' if success else 'FAILED'}")
     
-    if not args.skip_collections:
-        test_collections()
-    
-    if not args.skip_change_embedding and args.embedding:
-        test_change_embedding(args.embedding, args.new_collection)
-    
-    if not args.skip_query:
-        queries = [args.query] if args.query else None
-        test_query(queries, args.model, not args.no_web_search)
-    
-    if not args.skip_upload and args.file:
-        test_upload_file(args.file, args.embedding)
-    
-    if args.compare_models:
-        models_list = None
-        if args.models_list:
-            models_list = [m.strip() for m in args.models_list.split(",")]
-        test_with_different_models(args.compare_models, models_list)
+    print("\nTest completed.")
 
 if __name__ == "__main__":
     main() 
