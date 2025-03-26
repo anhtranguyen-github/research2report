@@ -2,24 +2,41 @@
 
 import os
 from typing import Dict, Any, List, Optional
-from pydantic import BaseModel, Field
 from contextlib import asynccontextmanager
 from dotenv import load_dotenv
 
 # Load environment variables from .env file
 load_dotenv()
 
-from fastapi import FastAPI, HTTPException, UploadFile, File, Form, BackgroundTasks
+from fastapi import FastAPI, HTTPException, UploadFile, File, Form, BackgroundTasks, Query
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 
 from qdrant_client import QdrantClient
-from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_qdrant import QdrantVectorStore
 from src.agentic_rag.utils.document_processing import load_and_split_documents
 from src.agentic_rag.core.workflow import AgenticRAGWorkflow
 from src.agentic_rag.utils.health_checks import check_all_services, check_ollama_health, check_qdrant_health
 from src.agentic_rag.config.models import list_available_models, get_model_config, DEFAULT_MODEL
+from src.agentic_rag.config.embeddings import (
+    list_available_embeddings, 
+    get_embedding_config, 
+    create_embedding_model,
+    DEFAULT_EMBEDDING
+)
+from .types import (
+    QueryRequest,
+    QueryResponse,
+    IngestRequest,
+    IngestResponse,
+    HealthResponse,
+    ModelsResponse,
+    ModelConfigResponse,
+    EmbeddingsResponse,
+    EmbeddingConfigResponse,
+    ChangeEmbeddingRequest,
+    ChangeEmbeddingResponse
+)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -63,7 +80,7 @@ async def lifespan(app: FastAPI):
 # Initialize the FastAPI app
 app = FastAPI(
     title="Agentic RAG API",
-    description="API for the Agentic RAG system using LangGraph, Ollama (Qwen2.5), and Qdrant",
+    description="API for the Agentic RAG system using LangGraph, Ollama, and Qdrant",
     version="1.0.0",
     lifespan=lifespan
 )
@@ -76,9 +93,6 @@ app.add_middleware(
     allow_methods=["*"],  # Allows all methods
     allow_headers=["*"],  # Allows all headers
 )
-
-# Initialize embeddings
-embeddings = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
 
 # Initialize Qdrant client with environment variable for URL
 qdrant_url = os.getenv("QDRANT_URL")
@@ -100,60 +114,17 @@ qdrant_client = QdrantClient(
     port=qdrant_port
 )
 
+# Global embeddings instance (initialized with default) 
+# Will be initialized based on environment or API calls
+embedding_model_name = os.getenv("EMBEDDING_MODEL", DEFAULT_EMBEDDING)
+embeddings = create_embedding_model(embedding_model_name)
+
 # Global vector store instance
 vector_store = QdrantVectorStore(
     client=qdrant_client,
     collection_name=os.getenv("QDRANT_COLLECTION", "agentic_rag"),
     embedding=embeddings
 )
-
-# Input and output models
-class QueryRequest(BaseModel):
-    """Request model for query endpoint."""
-    
-    query: str = Field(..., description="The user's query string")
-    model_name: str = Field(DEFAULT_MODEL, description="The LLM model to use")
-    use_web_search: bool = Field(True, description="Whether to use web search")
-
-class QueryResponse(BaseModel):
-    """Response model for query endpoint."""
-    
-    response: str = Field(..., description="The generated response")
-    query_analysis: Optional[Dict[str, Any]] = Field(None, description="Analysis of the user's query")
-    relevance_assessment: Optional[str] = Field(None, description="Assessment of the retrieved documents' relevance")
-    error: Optional[str] = Field(None, description="Error message, if any")
-
-class IngestResponse(BaseModel):
-    """Response model for ingestion endpoint."""
-    
-    message: str = Field(..., description="Status message")
-    num_documents: int = Field(..., description="Number of document chunks ingested")
-    error: Optional[str] = Field(None, description="Error message, if any")
-
-class HealthResponse(BaseModel):
-    """Response model for health check endpoint."""
-    
-    status: str = Field(..., description="Overall system status")
-    services: Dict[str, Dict[str, str]] = Field(..., description="Status of individual services")
-    error: Optional[str] = Field(None, description="Error message, if any")
-
-class ModelInfo(BaseModel):
-    """Model for LLM information."""
-    
-    name: str = Field(..., description="Name of the model")
-    description: str = Field(..., description="Description of the model")
-
-class ModelsResponse(BaseModel):
-    """Response model for available models endpoint."""
-    
-    models: List[ModelInfo] = Field(..., description="List of available models")
-    default_model: str = Field(..., description="Default model name")
-
-class ModelConfigResponse(BaseModel):
-    """Response model for model configuration endpoint."""
-    
-    model_name: str = Field(..., description="Name of the model")
-    config: Dict[str, Any] = Field(..., description="Model configuration")
 
 # API endpoints
 @app.get("/")
@@ -240,6 +211,108 @@ async def get_model_configuration(model_name: str):
         config=config
     )
 
+@app.get("/embeddings", response_model=EmbeddingsResponse)
+async def get_available_embeddings():
+    """
+    List all available embedding models.
+    
+    Returns:
+        List of available embedding models with descriptions
+    """
+    models = list_available_embeddings()
+    return EmbeddingsResponse(
+        models=models,
+        default_model=DEFAULT_EMBEDDING,
+        current_model=embedding_model_name
+    )
+
+@app.get("/embeddings/{model_name}/config", response_model=EmbeddingConfigResponse)
+async def get_embedding_configuration(model_name: str):
+    """
+    Get configuration for a specific embedding model.
+    
+    Args:
+        model_name: Name of the embedding model
+        
+    Returns:
+        Embedding model configuration
+    """
+    config = get_embedding_config(model_name)
+    return EmbeddingConfigResponse(
+        model_name=model_name,
+        config=config
+    )
+
+@app.post("/embeddings/change", response_model=ChangeEmbeddingResponse)
+async def change_embedding_model(request: ChangeEmbeddingRequest):
+    """
+    Change the active embedding model.
+    
+    Args:
+        request: Change embedding model request
+        
+    Returns:
+        Status of the change operation
+    """
+    global embeddings, vector_store, embedding_model_name
+    
+    # Store the previous model name
+    previous_model = embedding_model_name
+    
+    # Check if the model exists
+    config = get_embedding_config(request.model_name)
+    
+    try:
+        # Create the new embeddings model
+        new_embeddings = create_embedding_model(request.model_name)
+        
+        # Determine the collection name
+        collection_name = os.getenv("QDRANT_COLLECTION", "agentic_rag")
+        
+        if request.create_new_collection:
+            if request.collection_name:
+                collection_name = request.collection_name
+            else:
+                collection_name = f"agentic_rag_{request.model_name}"
+            
+            # Create the collection if it doesn't exist
+            if not qdrant_client.collection_exists(collection_name):
+                from src.agentic_rag.config.embeddings import get_collection_config
+                coll_config = get_collection_config(request.model_name)
+                
+                qdrant_client.create_collection(
+                    collection_name=collection_name,
+                    vectors_config={
+                        "size": coll_config["vector_size"],
+                        "distance": coll_config["distance"]
+                    }
+                )
+        
+        # Update the global variables
+        embeddings = new_embeddings
+        embedding_model_name = request.model_name
+        
+        # Create a new vector store with the new embeddings
+        vector_store = QdrantVectorStore(
+            client=qdrant_client,
+            collection_name=collection_name,
+            embedding=embeddings
+        )
+        
+        return ChangeEmbeddingResponse(
+            previous_model=previous_model,
+            current_model=embedding_model_name,
+            collection_name=collection_name,
+            dimensions=config.get("dimensions", 0),
+            message=f"Successfully changed embedding model to {embedding_model_name}"
+        )
+    
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to change embedding model: {str(e)}"
+        )
+
 @app.post("/query", response_model=QueryResponse)
 async def query(request: QueryRequest):
     """
@@ -296,7 +369,8 @@ async def upload_file(
     background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
     chunk_size: int = Form(1000),
-    chunk_overlap: int = Form(200)
+    chunk_overlap: int = Form(200),
+    embedding_model: Optional[str] = Form(None)
 ):
     """
     Upload and ingest a document into the vector store.
@@ -306,6 +380,7 @@ async def upload_file(
         file: Uploaded file
         chunk_size: Size of document chunks
         chunk_overlap: Overlap between chunks
+        embedding_model: Optional embedding model to use for this ingestion
         
     Returns:
         Status message and number of documents ingested
@@ -336,14 +411,34 @@ async def upload_file(
             chunk_overlap=chunk_overlap
         )
         
+        # Use specified embedding model if provided
+        local_vector_store = vector_store
+        temp_embeddings = None
+        
+        if embedding_model and embedding_model != embedding_model_name:
+            try:
+                temp_embeddings = create_embedding_model(embedding_model)
+                local_vector_store = QdrantVectorStore(
+                    client=qdrant_client,
+                    collection_name=os.getenv("QDRANT_COLLECTION", "agentic_rag"),
+                    embedding=temp_embeddings
+                )
+            except Exception as e:
+                return IngestResponse(
+                    message="Failed to create embedding model",
+                    num_documents=0,
+                    error=f"Error creating embedding model: {str(e)}"
+                )
+        
         # Ingest the document chunks into the vector store
-        vector_store.add_documents(documents)
+        local_vector_store.add_documents(documents)
         
         # Schedule cleanup of the temporary file
         background_tasks.add_task(os.remove, temp_file_path)
         
         return IngestResponse(
-            message=f"Successfully ingested {file.filename}",
+            message=f"Successfully ingested {file.filename}" + 
+                    (f" using {embedding_model} embeddings" if embedding_model else ""),
             num_documents=len(documents)
         )
     
@@ -359,10 +454,15 @@ async def upload_file(
         )
 
 @app.delete("/collection", response_model=Dict[str, str])
-async def delete_collection():
+async def delete_collection(
+    collection_name: Optional[str] = Query(None, description="Name of the collection to delete")
+):
     """
-    Delete the entire vector store collection.
+    Delete a vector store collection.
     
+    Args:
+        collection_name: Optional name of the collection to delete (uses default if not provided)
+        
     Returns:
         Status message
     """
@@ -378,9 +478,60 @@ async def delete_collection():
                 detail=f"Qdrant service is not healthy: {qdrant_msg}"
             )
         
-        collection_name = os.getenv("QDRANT_COLLECTION", "agentic_rag")
-        qdrant_client.delete_collection(collection_name=collection_name)
-        return {"message": f"Collection '{collection_name}' deleted successfully"}
+        # Use provided collection name or default
+        target_collection = collection_name or os.getenv("QDRANT_COLLECTION", "agentic_rag")
+        
+        # Check if collection exists
+        if not qdrant_client.collection_exists(target_collection):
+            return {"message": f"Collection '{target_collection}' does not exist"}
+        
+        # Delete the collection
+        qdrant_client.delete_collection(collection_name=target_collection)
+        return {"message": f"Collection '{target_collection}' deleted successfully"}
+    
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/collections", response_model=List[Dict[str, Any]])
+async def list_collections():
+    """
+    List all available collections in Qdrant.
+    
+    Returns:
+        List of collections with their info
+    """
+    try:
+        # Check Qdrant health before processing
+        qdrant_healthy, qdrant_msg = check_qdrant_health(
+            host=qdrant_host,
+            port=qdrant_port
+        )
+        if not qdrant_healthy:
+            raise HTTPException(
+                status_code=503,
+                detail=f"Qdrant service is not healthy: {qdrant_msg}"
+            )
+        
+        # Get collections list
+        collections = qdrant_client.get_collections().collections
+        
+        # Get details for each collection
+        result = []
+        for collection in collections:
+            try:
+                info = qdrant_client.get_collection(collection.name)
+                result.append({
+                    "name": collection.name,
+                    "vectors_count": info.vectors_count,
+                    "vector_size": info.config.params.vectors.size,
+                    "distance": str(info.config.params.vectors.distance),
+                    "created_at": collection.created_at.isoformat() if collection.created_at else None
+                })
+            except:
+                # If can't get detailed info, just add the name
+                result.append({"name": collection.name})
+        
+        return result
     
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
