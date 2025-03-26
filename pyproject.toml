@@ -3,12 +3,12 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "agentic-rag"
+name = "research2report"
 version = "0.1.0"
 authors = [
   { name="Ezooo", email="anhtranguyen.github@gmail.com" },
 ]
-description = "AgenticRAG: An advanced system for retrieval-augmented generation with autonomous AI agents"
+description = "An advanced system for turning research into comprehensive reports with autonomous AI agents"
 readme = "README.md"
 requires-python = ">=3.10"
 classifiers = [
@@ -57,8 +57,8 @@ dev = [
 ]
 
 [project.urls]
-"Homepage" = "https://github.com/anhtranguyen-github/agentic-rag"
-"Bug Tracker" = "https://github.com/anhtranguyen-github/agentic-rag/issues"
+"Homepage" = "https://github.com/anhtranguyen-github/research2report"
+"Bug Tracker" = "https://github.com/anhtranguyen-github/research2report/issues"
 
 [project.scripts]
 kickoff = "agentic_rag.main:kickoff"
