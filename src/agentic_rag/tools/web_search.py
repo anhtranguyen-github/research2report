@@ -82,4 +82,37 @@ class WebSearchTool:
         # For this example, we just return the mock results directly
         
         return results 
- 
+        
+    def run(self, state: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Run the web search tool within the workflow.
+        
+        Args:
+            state: The current workflow state
+            
+        Returns:
+            Updated workflow state
+        """
+        query = state.get("query", "")
+        query_analysis = state.get("query_analysis", {})
+        retrieval_result = state.get("retrieval_result", None)
+        
+        # Use both original query and search terms from query analysis
+        search_terms = []
+        if query_analysis and "search_terms" in query_analysis:
+            search_terms = query_analysis["search_terms"]
+        
+        # Combine all search terms into one query to avoid too many API calls
+        combined_query = query
+        if search_terms:
+            combined_query = f"{query} {' '.join(search_terms)}"
+            
+        # Perform web search
+        web_search_results = self.search_and_convert_to_documents(combined_query)
+        
+        return {
+            "query": query,
+            "query_analysis": query_analysis,
+            "retrieval_result": retrieval_result,
+            "web_search_result": web_search_results
+        } 
