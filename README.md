@@ -1,23 +1,23 @@
-# AgenticRAG
+# Research2Report
 
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-An advanced system for retrieval-augmented generation with autonomous AI agents. Developed by [Nguyen Anh Tra (Ezooo)](https://github.com/anhtranguyen-github).
+An advanced system for turning research into comprehensive reports with autonomous AI agents. Developed by [Nguyen Anh Tra (Ezooo)](https://github.com/anhtranguyen-github).
 
 ## 🚀 Overview
 
-AgenticRAG combines the power of retrieval-augmented generation (RAG) with autonomous AI agents to create a more powerful, context-aware, and adaptive information retrieval and content generation system. The system:
+Research2Report combines the power of AI agents with advanced NLP to automatically generate comprehensive reports from research materials. The system:
 
-1. **Analyzes** - Understands complex queries beyond simple keyword matching
-2. **Retrieves** - Uses sophisticated agents to gather relevant information from various sources
-3. **Augments** - Enhances retrieved information with additional context and connections
-4. **Generates** - Creates comprehensive, accurate responses using the augmented context
+1. **Gathers** - Collects research from various sources including papers, news, and structured databases
+2. **Analyzes** - Processes and extracts key information from research materials
+3. **Synthesizes** - Combines findings into a coherent narrative with proper citations
+4. **Generates** - Creates professional, publication-ready reports with visualizations
 
 ## 📁 Project Structure
 
 ```
-agentic_rag/
+research2report/
 ├── src/
 │   ├── agentic_rag/          # Core RAG functionality
 │   └── server/               # API server components
@@ -33,19 +33,18 @@ agentic_rag/
 
 The system operates through a coordinated agent workflow:
 
-1. **Query Analysis Phase**
-   - Agents analyze the user's query to understand the intent and required information
-   - The query is broken down into multiple components for targeted retrieval
+1. **Research Collection Phase**
+   - Agents gather materials from academic databases, news sources, and the web
+   - Materials are preprocessed and normalized for analysis
 
-2. **Retrieval Phase**
-   - Specialized retrieval agents search for information across different sources
-   - Sources include vector databases, web searches, and structured knowledge bases
-   - Results are ranked and filtered for relevance
+2. **Information Extraction Phase**
+   - Specialized agents extract key information, findings, and statistics
+   - Results are structured into a knowledge graph for relationship analysis
 
-3. **Content Generation Phase**
-   - Using the retrieved context, the system generates a comprehensive response
-   - Multiple agents work together to ensure accuracy and completeness
-   - The final response is formatted appropriately for the user's needs
+3. **Report Generation Phase**
+   - Using the structured information, the system generates a comprehensive report
+   - Multiple agents ensure proper citation, coherence, and factual accuracy
+   - The final report is formatted according to specified style guidelines
 
 ## 🔧 Installation
 
@@ -58,8 +57,8 @@ The system operates through a coordinated agent workflow:
 
 ```bash
 # Clone the repository
-git clone https://github.com/anhtranguyen-github/agentic-rag.git
-cd agentic-rag
+git clone https://github.com/anhtranguyen-github/research2report.git
+cd research2report
 
 # Set up a virtual environment
 python -m venv venv
@@ -73,8 +72,8 @@ pip install -e ".[dev]"
 
 ```bash
 # Clone the repository
-git clone https://github.com/anhtranguyen-github/agentic-rag.git
-cd agentic-rag
+git clone https://github.com/anhtranguyen-github/research2report.git
+cd research2report
 
 # Start the Docker containers
 docker-compose up -d
@@ -92,7 +91,8 @@ Required environment variables:
 
 ```
 OPENAI_API_KEY=your_openai_api_key
-QDRANT_URL=http://qdrant:6333
+TAVILY_API_KEY=your_tavily_api_key
+QDRANT_URL=http://localhost:6333
 ```
 
 ## 🏃‍♂️ Usage
@@ -100,10 +100,10 @@ QDRANT_URL=http://qdrant:6333
 ### Command Line Interface
 
 ```bash
-# Run the RAG system
+# Generate a report
 kickoff
 
-# Generate visualizations of retrieval performance
+# Generate visualizations of report data
 plot
 ```
 
@@ -135,7 +135,7 @@ The system supports multiple LLM models for different tasks:
 - **Mixtral Models**: mixtral
 - **OpenAI Models**: gpt-4o, gpt-4-turbo, gpt-3.5-turbo
 
-Each task in the RAG pipeline can use optimized parameters for that specific task.
+Each task in the pipeline can use optimized parameters for that specific task.
 
 ## 📊 Embedding Models
 
@@ -165,8 +165,8 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 Nguyen Anh Tra (Ezooo) is a developer from Vietnam currently focused on Large Language Models (LLMs) and their applications. For more projects, check out:
 
 - [bkai-vnlaw-rag](https://github.com/anhtranguyen-github/bkai-vnlaw-rag) - RAG system for Vietnamese legal documents
-- [Other LLM-related projects](https://github.com/anhtranguyen-github)
+- [Other projects](https://github.com/anhtranguyen-github)
 
 ## 📞 Contact
 
-For questions or feedback, please [open an issue](https://github.com/anhtranguyen-github/agentic-rag/issues) on the GitHub repository.
+For questions or feedback, please [open an issue](https://github.com/anhtranguyen-github/research2report/issues) on the GitHub repository.
