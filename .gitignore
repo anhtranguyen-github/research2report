@@ -73,3 +73,8 @@ cover/
 
 # Log files
 *.log 
+
+# Project specific files
+*.log
+*.log.*
+test*.py
