@@ -2,6 +2,8 @@ import requests
 import os
 import time
 import argparse
+import json
+from tabulate import tabulate
 
 # Default API URL
 API_URL = "http://localhost:8000"
@@ -14,7 +16,7 @@ def test_health():
     try:
         response = requests.get(f"{API_URL}/health")
         print(f"Health Check: {response.status_code}")
-        print(response.json())
+        print(json.dumps(response.json(), indent=2))
     except Exception as e:
         print(f"Failed to check health: {str(e)}")
     
@@ -22,7 +24,7 @@ def test_health():
     try:
         response = requests.get(f"{API_URL}/health/ollama")
         print(f"\nOllama Health: {response.status_code}")
-        print(response.json())
+        print(json.dumps(response.json(), indent=2))
     except Exception as e:
         print(f"Failed to check Ollama health: {str(e)}")
     
@@ -30,9 +32,208 @@ def test_health():
     try:
         response = requests.get(f"{API_URL}/health/qdrant")
         print(f"\nQdrant Health: {response.status_code}")
-        print(response.json())
+        print(json.dumps(response.json(), indent=2))
     except Exception as e:
         print(f"Failed to check Qdrant health: {str(e)}")
+
+def test_models():
+    """Test model configuration endpoints"""
+    print("\n=== Testing Model Configuration Endpoints ===")
+    
+    # Test list models endpoint
+    try:
+        response = requests.get(f"{API_URL}/models")
+        print(f"List Models: {response.status_code}")
+        
+        if response.status_code == 200:
+            data = response.json()
+            models = data.get("models", [])
+            
+            # Create a table of available models
+            table_data = []
+            for model in models:
+                table_data.append([model.get("name"), model.get("description")])
+            
+            print("\nAvailable Models:")
+            print(tabulate(table_data, headers=["Model Name", "Description"]))
+            print(f"\nDefault Model: {data.get('default_model')}")
+        else:
+            print(f"Error: {response.text}")
+    except Exception as e:
+        print(f"Failed to list models: {str(e)}")
+    
+    # Test model config endpoint for default model
+    try:
+        # Get default model first
+        response = requests.get(f"{API_URL}/models")
+        if response.status_code == 200:
+            default_model = response.json().get("default_model")
+            
+            # Get config for default model
+            response = requests.get(f"{API_URL}/models/{default_model}/config")
+            print(f"\nModel Config ({default_model}): {response.status_code}")
+            
+            if response.status_code == 200:
+                config = response.json().get("config", {})
+                
+                # Create a table of config parameters
+                table_data = []
+                for key, value in config.items():
+                    if key != "description":
+                        table_data.append([key, value])
+                
+                print("\nModel Configuration:")
+                print(tabulate(table_data, headers=["Parameter", "Value"]))
+            else:
+                print(f"Error: {response.text}")
+    except Exception as e:
+        print(f"Failed to get model config: {str(e)}")
+
+def test_embeddings():
+    """Test embedding model configuration endpoints"""
+    print("\n=== Testing Embedding Model Configuration Endpoints ===")
+    
+    # Test list embeddings endpoint
+    try:
+        response = requests.get(f"{API_URL}/embeddings")
+        print(f"List Embedding Models: {response.status_code}")
+        
+        if response.status_code == 200:
+            data = response.json()
+            models = data.get("models", [])
+            
+            # Create a table of available embedding models
+            table_data = []
+            for model in models:
+                table_data.append([
+                    model.get("name"), 
+                    model.get("dimensions"),
+                    model.get("type"),
+                    model.get("description")
+                ])
+            
+            print("\nAvailable Embedding Models:")
+            print(tabulate(table_data, headers=["Model Name", "Dimensions", "Type", "Description"]))
+            print(f"\nDefault Model: {data.get('default_model')}")
+            print(f"Current Model: {data.get('current_model')}")
+        else:
+            print(f"Error: {response.text}")
+    except Exception as e:
+        print(f"Failed to list embedding models: {str(e)}")
+    
+    # Test embedding model config endpoint for default model
+    try:
+        # Get default model first
+        response = requests.get(f"{API_URL}/embeddings")
+        if response.status_code == 200:
+            default_model = response.json().get("default_model")
+            
+            # Get config for default model
+            response = requests.get(f"{API_URL}/embeddings/{default_model}/config")
+            print(f"\nEmbedding Config ({default_model}): {response.status_code}")
+            
+            if response.status_code == 200:
+                config = response.json().get("config", {})
+                
+                # Create a table of config parameters
+                table_data = []
+                for key, value in config.items():
+                    if key != "description":
+                        table_data.append([key, value])
+                
+                print("\nEmbedding Model Configuration:")
+                print(tabulate(table_data, headers=["Parameter", "Value"]))
+            else:
+                print(f"Error: {response.text}")
+    except Exception as e:
+        print(f"Failed to get embedding config: {str(e)}")
+
+def test_collections():
+    """Test Qdrant collections endpoints"""
+    print("\n=== Testing Collections Endpoints ===")
+    
+    # List collections
+    try:
+        response = requests.get(f"{API_URL}/collections")
+        print(f"List Collections: {response.status_code}")
+        
+        if response.status_code == 200:
+            collections = response.json()
+            
+            if collections:
+                # Create a table of collections
+                table_data = []
+                for collection in collections:
+                    table_data.append([
+                        collection.get("name"),
+                        collection.get("vectors_count", "N/A"),
+                        collection.get("vector_size", "N/A"),
+                        collection.get("distance", "N/A")
+                    ])
+                
+                print("\nAvailable Collections:")
+                print(tabulate(table_data, headers=["Name", "Vectors Count", "Vector Size", "Distance"]))
+            else:
+                print("No collections found.")
+        else:
+            print(f"Error: {response.text}")
+    except Exception as e:
+        print(f"Failed to list collections: {str(e)}")
+
+def test_change_embedding(embedding_model=None, create_new_collection=False):
+    """Test changing the active embedding model"""
+    if not embedding_model:
+        print("No embedding model specified for change test, skipping.")
+        return
+    
+    print(f"\n=== Testing Change Embedding Model to {embedding_model} ===")
+    
+    # Get current embedding first
+    try:
+        response = requests.get(f"{API_URL}/embeddings")
+        current_model = "unknown"
+        if response.status_code == 200:
+            current_model = response.json().get("current_model")
+            print(f"Current model before change: {current_model}")
+        
+        # Skip if already using the requested model
+        if current_model == embedding_model:
+            print(f"Already using {embedding_model}, skipping change test.")
+            return
+        
+        # Change embedding model
+        collection_name = f"test_{embedding_model}" if create_new_collection else None
+        
+        payload = {
+            "model_name": embedding_model,
+            "create_new_collection": create_new_collection,
+            "collection_name": collection_name
+        }
+        
+        print(f"Requesting change to {embedding_model}" + 
+              (f" with new collection {collection_name}" if create_new_collection else ""))
+        
+        response = requests.post(f"{API_URL}/embeddings/change", json=payload)
+        print(f"Change Embedding: {response.status_code}")
+        
+        if response.status_code == 200:
+            result = response.json()
+            print(json.dumps(result, indent=2))
+            
+            # Verify the change
+            verify_response = requests.get(f"{API_URL}/embeddings")
+            if verify_response.status_code == 200:
+                new_current = verify_response.json().get("current_model")
+                print(f"Verified current model after change: {new_current}")
+                
+                if new_current == embedding_model:
+                    print("✅ Embedding model successfully changed")
+                else:
+                    print("❌ Embedding model change failed")
+        else:
+            print(f"Error: {response.text}")
+    except Exception as e:
+        print(f"Failed to change embedding model: {str(e)}")
 
 def test_query(queries=None, model="qwen2.5", use_web_search=True):
     """Test query endpoint with optional web search"""
@@ -78,7 +279,7 @@ def test_query(queries=None, model="qwen2.5", use_web_search=True):
         except Exception as e:
             print(f"Failed to send query: {str(e)}")
 
-def test_upload_file(file_path):
+def test_upload_file(file_path, embedding_model=None):
     """Test file upload endpoint"""
     print("\n=== Testing File Upload ===")
     
@@ -96,15 +297,101 @@ def test_upload_file(file_path):
                 'chunk_overlap': '200'
             }
             
+            # Add embedding model if specified
+            if embedding_model:
+                data['embedding_model'] = embedding_model
+                print(f"Using embedding model: {embedding_model}")
+            
             response = requests.post(f"{API_URL}/upload", files=files, data=data)
             
             print(f"Status Code: {response.status_code}")
-            print(response.json())
+            print(json.dumps(response.json(), indent=2))
     except Exception as e:
         print(f"Failed to upload file: {str(e)}")
 
+def test_with_different_models(query, models=None):
+    """Test the same query with different models for comparison"""
+    if not models:
+        # Try to get available models from API
+        try:
+            response = requests.get(f"{API_URL}/models")
+            if response.status_code == 200:
+                models_data = response.json().get("models", [])
+                models = [model.get("name") for model in models_data]
+            else:
+                # Default models if can't fetch from API
+                models = ["qwen2.5", "phi3"]
+        except:
+            # Default models if API fails
+            models = ["qwen2.5", "phi3"]
+    
+    print(f"\n=== Testing With Different Models: '{query}' ===")
+    
+    results = []
+    
+    for model in models:
+        print(f"\nTesting with model: {model}")
+        payload = {
+            "query": query,
+            "model_name": model,
+            "use_web_search": True
+        }
+        
+        try:
+            start_time = time.time()
+            response = requests.post(f"{API_URL}/query", json=payload)
+            elapsed_time = time.time() - start_time
+            
+            if response.status_code == 200:
+                data = response.json()
+                response_text = data.get("response", "").strip()
+                
+                # Get the first 50 characters for the table
+                short_response = response_text[:50] + "..." if len(response_text) > 50 else response_text
+                
+                results.append({
+                    "model": model,
+                    "time": elapsed_time,
+                    "response": short_response,
+                    "full_response": response_text
+                })
+                
+                print(f"Status: ✅ ({elapsed_time:.2f}s)")
+            else:
+                print(f"Status: ❌ Error: {response.text}")
+                results.append({
+                    "model": model,
+                    "time": elapsed_time,
+                    "response": f"Error: {response.status_code}",
+                    "full_response": response.text
+                })
+        except Exception as e:
+            print(f"Failed: {str(e)}")
+            results.append({
+                "model": model,
+                "time": 0,
+                "response": f"Failed: {str(e)}",
+                "full_response": str(e)
+            })
+    
+    # Print comparison table
+    if results:
+        print("\nComparison of Model Responses:")
+        table_data = [
+            [r["model"], f"{r['time']:.2f}s", r["response"]]
+            for r in results
+        ]
+        print(tabulate(table_data, headers=["Model", "Time", "Response"]))
+        
+        # Print full responses
+        for r in results:
+            print(f"\n--- Full Response from {r['model']} ---")
+            print(r["full_response"])
+    
+    return results
+
 def main():
-    global API_URL  # Move global declaration to the beginning of the function
+    global API_URL
     
     parser = argparse.ArgumentParser(description="Test Agentic RAG API")
     parser.add_argument("--url", default=API_URL, help="API URL")
@@ -112,25 +399,54 @@ def main():
     parser.add_argument("--model", default="qwen2.5", help="Model to use for queries")
     parser.add_argument("--no-web-search", action="store_true", help="Disable web search")
     parser.add_argument("--file", help="File to upload for testing ingestion")
+    parser.add_argument("--embedding", help="Embedding model to test or use")
+    parser.add_argument("--new-collection", action="store_true", help="Create new collection when changing embedding")
+    parser.add_argument("--compare-models", help="Query to compare across multiple models")
+    parser.add_argument("--models-list", help="Comma-separated list of models to compare")
+    
+    # Test selection flags
     parser.add_argument("--skip-health", action="store_true", help="Skip health checks")
+    parser.add_argument("--skip-models", action="store_true", help="Skip models endpoints")
+    parser.add_argument("--skip-embeddings", action="store_true", help="Skip embeddings endpoints")
+    parser.add_argument("--skip-collections", action="store_true", help="Skip collections endpoints")
     parser.add_argument("--skip-query", action="store_true", help="Skip query tests")
     parser.add_argument("--skip-upload", action="store_true", help="Skip upload tests")
+    parser.add_argument("--skip-change-embedding", action="store_true", help="Skip embedding change test")
     
     args = parser.parse_args()
     
     # Update API_URL if provided in command line
     if args.url != API_URL:
-        API_URL = args.url  # No need for global declaration here
+        API_URL = args.url
     
+    # Run the selected tests
     if not args.skip_health:
         test_health()
+    
+    if not args.skip_models:
+        test_models()
+    
+    if not args.skip_embeddings:
+        test_embeddings()
+    
+    if not args.skip_collections:
+        test_collections()
+    
+    if not args.skip_change_embedding and args.embedding:
+        test_change_embedding(args.embedding, args.new_collection)
     
     if not args.skip_query:
         queries = [args.query] if args.query else None
         test_query(queries, args.model, not args.no_web_search)
     
     if not args.skip_upload and args.file:
-        test_upload_file(args.file)
+        test_upload_file(args.file, args.embedding)
+    
+    if args.compare_models:
+        models_list = None
+        if args.models_list:
+            models_list = [m.strip() for m in args.models_list.split(",")]
+        test_with_different_models(args.compare_models, models_list)
 
 if __name__ == "__main__":
     main() 
