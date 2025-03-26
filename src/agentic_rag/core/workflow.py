@@ -5,7 +5,7 @@ from langgraph.graph import Graph
 from langchain.schema import Document
 from langchain_qdrant import QdrantVectorStore
 
-from src.agentic_rag.agents.query_analyzer import QueryAnalysis
+from src.agentic_rag.agents.query_analyzer import QueryAnalysis, QueryAnalyzerAgent
 from src.agentic_rag.agents.retriever import RetrieverAgent
 from src.agentic_rag.tools.web_search import WebSearchTool
 from src.agentic_rag.agents.generator import GeneratorAgent
@@ -32,7 +32,7 @@ class AgenticRAGWorkflow:
         self.use_web_search = use_web_search
         
         # Initialize agents
-        self.query_analyzer = QueryAnalysis(model_name=model_name)
+        self.query_analyzer = QueryAnalyzerAgent(model_name=model_name)
         self.retriever = RetrieverAgent(vector_store=vector_store)
         self.web_search = WebSearchTool() if use_web_search else None
         self.generator = GeneratorAgent(model_name=model_name)
@@ -71,11 +71,12 @@ class AgenticRAGWorkflow:
         else:
             graph.add_edge("retrieve_documents", "generate_response")
         
-        # Set entry and exit points
-        graph.set_entry_point("analyze_query")
-        graph.set_exit_point("generate_response")
+        # Define the end state
+        def end_state(state):
+            return state.get("response") is not None
         
-        return graph
+        # Compile the graph with the correct API
+        return graph.compile()
     
     def run(self, query: str) -> Dict[str, Any]:
         """
@@ -88,8 +89,9 @@ class AgenticRAGWorkflow:
             Dictionary containing the results
         """
         try:
-            # Run the graph
-            result = self.graph.run({"query": query})
+            # Run the graph with the initial state
+            state = {"query": query}
+            result = self.graph(state)
             
             return {
                 "response": result.get("response", ""),
