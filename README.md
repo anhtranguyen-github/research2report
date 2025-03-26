@@ -98,6 +98,35 @@ Agent behavior and tasks can be customized by modifying the YAML files in:
 - `src/ai_trends_report/crews/DataExtraction_crew/config/`
 - `src/ai_trends_report/crews/ContentGeneration_crew/config/`
 
+## Model Configuration
+
+### LLM Models
+
+The system supports multiple LLM models for different tasks:
+
+- **Qwen Models**: qwen2.5, qwen2.5-14b
+- **Llama Models**: llama3, llama3-70b
+- **Mistral Models**: mistral, mistral-7b-instruct
+- **Mixtral Models**: mixtral
+- **CodeLlama Models**: codellama
+
+Each task in the RAG pipeline (query analysis, retrieval evaluation, generation) can use optimized parameters for that specific task.
+
+See [Model Configuration Documentation](src/agentic_rag/config/README.md) for details.
+
+### Embedding Models
+
+The system supports multiple embedding models for vector storage:
+
+- **Sentence Transformers Models**: all-MiniLM-L6-v2, all-mpnet-base-v2, e5-large-v2, etc.
+- **Instructor Models**: Instruction-tuned embedding models
+- **OpenAI Models**: OpenAI's embedding models (requires API key)
+- **Ollama Models**: Embedding models running through Ollama
+
+Embedding models can be changed at runtime, and collections can be created specific to each model's dimensions.
+
+See [Embedding Configuration Documentation](src/agentic_rag/config/EMBEDDING_README.md) for details.
+
 ## License
 
 MIT
