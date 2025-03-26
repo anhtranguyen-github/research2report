@@ -4,6 +4,10 @@ import os
 from typing import Dict, Any, List, Optional
 from pydantic import BaseModel, Field
 from contextlib import asynccontextmanager
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 from fastapi import FastAPI, HTTPException, UploadFile, File, Form, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
@@ -15,6 +19,7 @@ from langchain_qdrant import QdrantVectorStore
 from src.agentic_rag.utils.document_processing import load_and_split_documents
 from src.agentic_rag.core.workflow import AgenticRAGWorkflow
 from src.agentic_rag.utils.health_checks import check_all_services, check_ollama_health, check_qdrant_health
+from src.agentic_rag.config.models import list_available_models, get_model_config, DEFAULT_MODEL
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -107,7 +112,7 @@ class QueryRequest(BaseModel):
     """Request model for query endpoint."""
     
     query: str = Field(..., description="The user's query string")
-    model_name: str = Field("qwen2.5", description="The LLM model to use")
+    model_name: str = Field(DEFAULT_MODEL, description="The LLM model to use")
     use_web_search: bool = Field(True, description="Whether to use web search")
 
 class QueryResponse(BaseModel):
@@ -131,6 +136,24 @@ class HealthResponse(BaseModel):
     status: str = Field(..., description="Overall system status")
     services: Dict[str, Dict[str, str]] = Field(..., description="Status of individual services")
     error: Optional[str] = Field(None, description="Error message, if any")
+
+class ModelInfo(BaseModel):
+    """Model for LLM information."""
+    
+    name: str = Field(..., description="Name of the model")
+    description: str = Field(..., description="Description of the model")
+
+class ModelsResponse(BaseModel):
+    """Response model for available models endpoint."""
+    
+    models: List[ModelInfo] = Field(..., description="List of available models")
+    default_model: str = Field(..., description="Default model name")
+
+class ModelConfigResponse(BaseModel):
+    """Response model for model configuration endpoint."""
+    
+    model_name: str = Field(..., description="Name of the model")
+    config: Dict[str, Any] = Field(..., description="Model configuration")
 
 # API endpoints
 @app.get("/")
@@ -185,6 +208,37 @@ async def qdrant_health():
         "status": "healthy" if is_healthy else "unhealthy",
         "message": message
     }
+
+@app.get("/models", response_model=ModelsResponse)
+async def get_available_models():
+    """
+    List all available LLM models.
+    
+    Returns:
+        List of available models with descriptions
+    """
+    models = list_available_models()
+    return ModelsResponse(
+        models=models,
+        default_model=DEFAULT_MODEL
+    )
+
+@app.get("/models/{model_name}/config", response_model=ModelConfigResponse)
+async def get_model_configuration(model_name: str):
+    """
+    Get configuration for a specific model.
+    
+    Args:
+        model_name: Name of the model
+        
+    Returns:
+        Model configuration
+    """
+    config = get_model_config(model_name)
+    return ModelConfigResponse(
+        model_name=model_name,
+        config=config
+    )
 
 @app.post("/query", response_model=QueryResponse)
 async def query(request: QueryRequest):
@@ -334,7 +388,7 @@ async def delete_collection():
 def start():
     """Start the FastAPI server."""
     uvicorn.run(
-        "src.agentic_rag.server.api:app",
+        app,
         host=os.getenv("HOST", "0.0.0.0"),
         port=int(os.getenv("PORT", "8000")),
         reload=True
