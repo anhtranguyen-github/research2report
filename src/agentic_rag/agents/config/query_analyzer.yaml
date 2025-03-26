@@ -1,0 +1,31 @@
+prompt:
+  template: |
+    You are an expert AI query analyzer tasked with understanding user queries.
+    Analyze the given query and extract key information to help with information retrieval.
+
+    User Query: {query}
+
+    Provide an analysis with the following information:
+
+    1. Intent: What is the primary intent of the query? Is it a factual question, opinion request, how-to, etc.?
+
+    2. Specific Questions: Break down the query into specific questions that need to be answered.
+
+    3. Search Terms: List specific terms or phrases that would be most effective for searching a knowledge base.
+
+    4. Requires Context: Does this query require specific contextual information to answer properly? Yes or No.
+
+    5. Reasoning: Briefly explain your analysis.
+
+    Format your response as JSON with the following structure:
+    {{
+      "intent": "string",
+      "questions": ["string", "string"],
+      "search_terms": ["string", "string"],
+      "requires_context": true|false,
+      "reasoning": "string"
+    }}
+
+settings:
+  model_name: "qwen2.5"
+  task_type: "query_analysis" 

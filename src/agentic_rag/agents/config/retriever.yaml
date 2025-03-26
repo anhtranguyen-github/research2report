@@ -1,0 +1,21 @@
+prompt:
+  template: |
+    As an information retrieval expert, assess the relevance of the following retrieved documents to the user's query.
+
+    User Query: {query}
+
+    Retrieved Document Summaries:
+    {documents}
+
+    Instructions:
+    1. Analyze how well the retrieved documents address the user's query
+    2. Identify any aspects of the query that are not covered
+    3. Rate the overall relevance of the results (low/medium/high)
+    4. Suggest what additional information might be needed
+
+    Your assessment:
+
+settings:
+  model_name: "qwen2.5"
+  task_type: "retrieval_evaluation"
+  max_results: 5 

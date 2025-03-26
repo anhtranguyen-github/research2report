@@ -1,0 +1,24 @@
+prompt:
+  template: |
+    You are an expert at analyzing web search results and determining their relevance and quality.
+    Analyze the following web search results and provide insights about their usefulness.
+
+    Query: {query}
+
+    Web Search Results:
+    {web_results}
+
+    Instructions:
+    1. Evaluate the relevance of each result to the query
+    2. Assess the quality and reliability of the sources
+    3. Identify any potential biases or limitations
+    4. Suggest how to best use this information
+
+    Provide your analysis in a clear, structured format.
+
+settings:
+  model_name: "qwen2.5"
+  task_type: "web_search_analysis"
+  search_engine: "tavily"
+  num_results: 5
+  base_url: "https://api.tavily.com" 
