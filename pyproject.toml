@@ -3,23 +3,85 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "agentic_rag"
+name = "agentic-rag"
 version = "0.1.0"
 authors = [
-  { name="Example Author", email="author@example.com" },
+  { name="Ezooo", email="anhtranguyen.github@gmail.com" },
 ]
-description = "AI Agent system that generates weekly AI trends reports"
+description = "AgenticRAG: An advanced system for retrieval-augmented generation with autonomous AI agents"
 readme = "README.md"
 requires-python = ">=3.10"
 classifiers = [
     "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
 ]
+dependencies = [
+    "fastapi>=0.110.0",
+    "uvicorn>=0.28.0",
+    "python-multipart>=0.0.9",
+    "python-dotenv>=1.0.1",
+    "langchain>=0.2.17",
+    "langchain-community>=0.2.17",
+    "langchain-openai>=0.0.8",
+    "qdrant-client>=1.7.3",
+    "ollama>=0.1.7",
+    "requests>=2.31.0",
+    "aiohttp>=3.9.5",
+    "pydantic>=2.7.4",
+    "pyyaml>=6.0.1",
+    "beautifulsoup4>=4.12.3",
+    "pypdf>=4.2.0",
+    "arxiv",
+    "tweepy>=4.14.0",
+    "langgraph>=0.0.35",
+    "sentence-transformers>=2.2.2",
+    "llama-index>=0.10.0",
+    "instructor-embedding>=0.4.0",
+    "unstructured",
+    "tabulate",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.4.4",
+    "black>=23.0.0",
+    "isort>=5.12.0",
+    "flake8>=6.0.0",
+    "mypy>=1.0.0",
+]
+
+[project.urls]
+"Homepage" = "https://github.com/anhtranguyen-github/agentic-rag"
+"Bug Tracker" = "https://github.com/anhtranguyen-github/agentic-rag/issues"
 
 [project.scripts]
 kickoff = "agentic_rag.main:kickoff"
 plot = "agentic_rag.main:plot"
+
+[tool.black]
+line-length = 88
+target-version = ["py310"]
+
+[tool.isort]
+profile = "black"
+line_length = 88
+
+[tool.mypy]
+python_version = "3.10"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+
+[tool.pytest]
+testpaths = ["tests"]
+python_files = "test_*.py"
 
 [tool.crewai]
 type = "flow"
