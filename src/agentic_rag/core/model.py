@@ -3,7 +3,7 @@
 import os
 from typing import Dict, Any, List, Optional
 
-from langchain_community.llms import Ollama
+from langchain_ollama import OllamaLLM
 from langchain.callbacks.manager import CallbackManager
 from langchain.callbacks.streaming_stdout import StreamingStdOutCallbackHandler
 
@@ -14,18 +14,18 @@ def get_ollama_llm(
     task_type: Optional[str] = None,
     callback_manager: Optional[CallbackManager] = None,
     **kwargs: Any
-) -> Ollama:
+) -> OllamaLLM:
     """
-    Initialize and return an Ollama LLM instance.
+    Initialize and return an OllamaLLM instance.
     
     Args:
         model_name: The name of the model to use
         task_type: Optional task type for specific configurations
         callback_manager: Optional callback manager
-        **kwargs: Additional keyword arguments to pass to Ollama
+        **kwargs: Additional keyword arguments to pass to OllamaLLM
         
     Returns:
-        An initialized Ollama LLM instance
+        An initialized OllamaLLM instance
     """
     if callback_manager is None:
         callback_manager = CallbackManager([StreamingStdOutCallbackHandler()])
@@ -82,7 +82,7 @@ def get_ollama_llm(
         print(f"Error finding model: {e}. Using provided model name: {model_name}")
         actual_model_name = model_name
     
-    return Ollama(
+    return OllamaLLM(
         model=actual_model_name,
         callback_manager=callback_manager,
         base_url=ollama_host,
