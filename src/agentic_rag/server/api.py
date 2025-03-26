@@ -10,7 +10,10 @@ load_dotenv()
 
 from fastapi import FastAPI, HTTPException, UploadFile, File, Form, BackgroundTasks, Query
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse
 import uvicorn
+import json
+import asyncio
 
 from qdrant_client import QdrantClient
 from langchain_qdrant import QdrantVectorStore
@@ -35,7 +38,8 @@ from .types import (
     EmbeddingsResponse,
     EmbeddingConfigResponse,
     ChangeEmbeddingRequest,
-    ChangeEmbeddingResponse
+    ChangeEmbeddingResponse,
+    WebSearchResult
 )
 
 @asynccontextmanager
@@ -333,11 +337,12 @@ async def query(request: QueryRequest):
                 error=f"Ollama service is not healthy: {ollama_msg}"
             )
         
-        # Initialize the workflow
+        # Initialize the workflow with the agent manager approach
         workflow = AgenticRAGWorkflow(
             vector_store=vector_store,
             model_name=request.model_name,
-            use_web_search=request.use_web_search
+            use_web_search=request.use_web_search,
+            config_dir="src/agentic_rag/agents/config"
         )
         
         # Run the workflow
@@ -349,20 +354,71 @@ async def query(request: QueryRequest):
                 error=result["error"]
             )
         
-        # Extract query analysis and relevance assessment for the response
-        query_analysis = result.get("query_analysis")
-        relevance_assessment = None
-        if result.get("retrieval_result"):
-            relevance_assessment = result["retrieval_result"].relevance_assessment
-        
+        # Extract results for the response
         return QueryResponse(
             response=result.get("response", "No response generated."),
-            query_analysis=query_analysis,
-            relevance_assessment=relevance_assessment
+            query_analysis=result.get("query_analysis"),
+            retrieval_result=result.get("retrieval_result"),
+            web_search_results=result.get("web_search_result")
         )
     
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/query/stream")
+async def stream_query(request: QueryRequest):
+    """
+    Stream a query response from the Agentic RAG system.
+    
+    Args:
+        request: Query request containing the query, model name, and web search flag
+        
+    Returns:
+        Streaming response with token-by-token generation
+    """
+    async def generate():
+        try:
+            # Check service health before processing
+            ollama_healthy, ollama_msg = check_ollama_health(request.model_name)
+            if not ollama_healthy:
+                yield f"data: Error: Ollama service is not healthy: {ollama_msg}\n\n"
+                return
+            
+            # Initialize the workflow
+            workflow = AgenticRAGWorkflow(
+                vector_store=vector_store,
+                model_name=request.model_name,
+                use_web_search=request.use_web_search,
+                config_dir="src/agentic_rag/agents/config"
+            )
+            
+            # Define token queue to manage async stream
+            token_queue = asyncio.Queue()
+            
+            # Create a callback that puts tokens into the queue
+            async def stream_callback(token: str):
+                await token_queue.put(token)
+            
+            # Start streaming response in background task
+            asyncio.create_task(workflow.stream(request.query, stream_callback))
+            
+            # Keep yielding tokens until we get a special "DONE" token
+            while True:
+                token = await token_queue.get()
+                if token == "DONE":
+                    break
+                yield f"data: {token}\n\n"
+            
+            # End the stream
+            yield "data: [DONE]\n\n"
+        
+        except Exception as e:
+            yield f"data: Error: {str(e)}\n\n"
+            
+    return StreamingResponse(
+        generate(),
+        media_type="text/event-stream"
+    )
 
 @app.post("/upload", response_model=IngestResponse)
 async def upload_file(
