@@ -3,6 +3,7 @@
 import argparse
 import os
 import uvicorn
+from src.agentic_rag.server.api import app
 
 def main():
     """Main entry point for the server script."""
@@ -29,7 +30,7 @@ def main():
     
     # Start the server
     uvicorn.run(
-        "src.agentic_rag.server.api:app",
+        app,
         host=args.host,
         port=args.port,
         reload=args.reload
