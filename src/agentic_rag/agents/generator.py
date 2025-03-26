@@ -20,7 +20,8 @@ class GeneratorAgent:
         Args:
             model_name: Name of the LLM model to use
         """
-        self.llm = get_ollama_llm(model_name=model_name)
+        # Use task-specific model for generation
+        self.llm = get_ollama_llm(model_name=model_name, task_type="generation")
         self.prompt = self._create_prompt()
         self.chain = self.prompt | self.llm | StrOutputParser()
     
@@ -88,31 +89,74 @@ Your response:"""
         
         return ", ".join(questions)
     
-    def generate(
-        self,
-        query: str,
-        query_analysis: QueryAnalysis,
-        retrieval_result: RetrievalResult
-    ) -> str:
+    def generate(self, query: str, query_analysis: Dict[str, Any], retrieval_result: Any) -> str:
         """
-        Generate a response based on the query and retrieved information.
+        Generate a response based on retrieved information.
         
         Args:
-            query: The user's query string
-            query_analysis: Structured analysis of the query
-            retrieval_result: Result of the retrieval process
+            query: User's query string
+            query_analysis: Analysis of the user's query
+            retrieval_result: Result of document retrieval
             
         Returns:
             Generated response
         """
-        context = self.format_context(retrieval_result.documents)
-        questions = self.format_questions(query_analysis["questions"])
+        # Extract information from query analysis
+        intent = query_analysis.get("intent", "") if query_analysis else ""
+        questions = ", ".join(query_analysis.get("questions", [])) if query_analysis else ""
+        requires_context = query_analysis.get("requires_context", True) if query_analysis else True
         
-        return self.chain.invoke({
+        # Extract information from retrieval result
+        context = ""
+        relevance_assessment = ""
+        
+        if retrieval_result:
+            # Extract document content
+            docs = retrieval_result.documents if hasattr(retrieval_result, "documents") else []
+            if docs:
+                doc_texts = []
+                for i, doc in enumerate(docs):
+                    doc_texts.append(f"Source {i+1}:\n{doc.page_content}")
+                context = "\n\n".join(doc_texts)
+            
+            # Extract relevance assessment
+            if hasattr(retrieval_result, "relevance_assessment"):
+                relevance_assessment = retrieval_result.relevance_assessment
+        
+        # Generate the response
+        response = self.chain.invoke({
             "query": query,
-            "intent": query_analysis["intent"],
+            "intent": intent,
             "questions": questions,
-            "requires_context": str(query_analysis["requires_context"]),
-            "context": context,
-            "relevance_assessment": retrieval_result.relevance_assessment
+            "requires_context": str(requires_context),
+            "context": context or "No relevant information retrieved.",
+            "relevance_assessment": relevance_assessment or "No relevance assessment available."
         })
+        
+        return response
+    
+    def run(self, state: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Run the generator agent within the workflow.
+        
+        Args:
+            state: The current workflow state
+            
+        Returns:
+            Updated workflow state
+        """
+        query = state.get("query", "")
+        query_analysis = state.get("query_analysis", {})
+        retrieval_result = state.get("retrieval_result", None)
+        web_search_result = state.get("web_search_result", None)
+        
+        # Generate response using retrieved information
+        response = self.generate(query, query_analysis, retrieval_result)
+        
+        return {
+            "query": query,
+            "query_analysis": query_analysis,
+            "retrieval_result": retrieval_result,
+            "web_search_result": web_search_result,
+            "response": response
+        }
